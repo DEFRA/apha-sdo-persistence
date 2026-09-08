@@ -64,4 +64,8 @@ jobs:
         with:
           path: artifacts/coverage/report/Cobertura.xml
           repo_token: ${{ secrets.GITHUB_TOKEN }}
-          minimum_coverage: 0
+          minimum_coverage: 85
+          fail_below_threshold: true
+          show_line: true
+          show_branch: true
+          show_class_names: true
