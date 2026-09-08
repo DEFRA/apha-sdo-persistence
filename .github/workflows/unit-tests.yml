@@ -1,0 +1,54 @@
+name: Unit Tests
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+jobs:
+  unit-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "8.0.x"
+
+      - name: Restore
+        run: dotnet restore Apha.Sdo.Persistence.Functions.Tests/Apha.Sdo.Persistence.Functions.Tests.csproj
+
+      - name: Test
+        run: >
+          dotnet test Apha.Sdo.Persistence.Functions.Tests/Apha.Sdo.Persistence.Functions.Tests.csproj
+          --configuration Release
+          --logger "junit;LogFilePath=../artifacts/test-results/{assembly}.xml"
+          --collect:"XPlat Code Coverage"
+          --results-directory artifacts/coverage
+
+      - name: Generate coverage report
+        if: always()
+        run: |
+          dotnet tool install --global dotnet-reportgenerator-globaltool
+          export PATH="$PATH:$HOME/.dotnet/tools"
+          reportgenerator \
+            "-reports:artifacts/coverage/**/coverage.cobertura.xml" \
+            "-targetdir:artifacts/coverage/report" \
+            "-reporttypes:Cobertura;TextSummary;MarkdownSummary"
+          cat artifacts/coverage/report/Summary.txt
+
+      - name: Publish test results
+        if: always()
+        uses: dorny/test-reporter@v1
+        with:
+          name: Unit Tests
+          path: artifacts/test-results/*.xml
+          reporter: java-junit
+
+      - name: Upload coverage report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report
+          path: artifacts/coverage/report/
