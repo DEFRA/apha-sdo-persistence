@@ -4,6 +4,7 @@ using Microsoft.Azure.Functions.Worker;
 using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.Configuration;
 using System.Data;
+using System.Diagnostics.CodeAnalysis;
 using System.Security.Claims;
 
 namespace Apha.Sdo.Persistence.Functions;
@@ -70,6 +71,7 @@ public interface ISubmissionQueryRepository
         CancellationToken cancellationToken);
 }
 
+[ExcludeFromCodeCoverage(Justification = "Thin ADO.NET adapter; requires a live SQL Server to exercise meaningfully.")]
 public sealed class SubmissionQueryRepository : ISubmissionQueryRepository
 {
     private const string SelectCommand = """

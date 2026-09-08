@@ -29,7 +29,7 @@ jobs:
           dotnet test Apha.Sdo.Persistence.Functions.Tests/Apha.Sdo.Persistence.Functions.Tests.csproj
           --configuration Release
           --logger "junit;LogFilePath=../artifacts/test-results/{assembly}.xml"
-          --collect:"XPlat Code Coverage"
+          --settings CodeCoverage.runsettings
           --results-directory artifacts/coverage
 
       - name: Generate coverage report

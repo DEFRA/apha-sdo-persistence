@@ -5,6 +5,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Microsoft.Data.SqlClient;
 using System.Data;
+using System.Diagnostics.CodeAnalysis;
 using System.Text.Json;
 
 namespace Apha.Sdo.Persistence.Functions;
@@ -60,6 +61,7 @@ public interface ISubmissionMetadataRepository
     Task<Guid> CreateAsync(SubmissionMetadataRequest submission, CancellationToken cancellationToken);
 }
 
+[ExcludeFromCodeCoverage(Justification = "Thin ADO.NET adapter; requires a live SQL Server to exercise meaningfully.")]
 public sealed class SubmissionMetadataRepository : ISubmissionMetadataRepository
 {
     private const string InsertCommand = """
@@ -120,7 +122,7 @@ public sealed class SubmissionMetadataRepository : ISubmissionMetadataRepository
     private static object DbValue(string? value) => string.IsNullOrWhiteSpace(value) ? DBNull.Value : value;
 }
 
-public sealed class SubmissionMetadataRequest
+public sealed record SubmissionMetadataRequest
 {
     public string? ReferenceNumber { get; init; }
     public string? UserId { get; init; }

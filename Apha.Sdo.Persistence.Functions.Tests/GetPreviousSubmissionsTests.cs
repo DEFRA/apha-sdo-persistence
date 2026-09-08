@@ -52,6 +52,19 @@ public class GetPreviousSubmissionsTests
         Assert.Null(repository.LaboratoryId);
     }
 
+    [Fact]
+    public void SubmissionSummary_WithSameValues_AreEqual()
+    {
+        var submittedDate = new DateTime(2026, 8, 28, 10, 0, 0, DateTimeKind.Utc);
+        var submissionId = Guid.NewGuid();
+        var first = new SubmissionSummary(submissionId, "REF-001", "BR", "notify@example.gov.uk", submittedDate);
+        var second = new SubmissionSummary(submissionId, "REF-001", "BR", "notify@example.gov.uk", submittedDate);
+
+        Assert.Equal(first, second);
+        Assert.Equal(first.GetHashCode(), second.GetHashCode());
+        Assert.Contains("REF-001", first.ToString());
+    }
+
     private static HttpRequest CreateRequest(ClaimsPrincipal user)
     {
         var context = new DefaultHttpContext { User = user };
