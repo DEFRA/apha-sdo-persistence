@@ -12,6 +12,7 @@ var builder = FunctionsApplication.CreateBuilder(args);
 
 builder.ConfigureFunctionsWebApplication();
 builder.Services.AddSingleton<ISubmissionMetadataRepository, SubmissionMetadataRepository>();
+builder.Services.AddSingleton<ISubmissionQueryRepository, SubmissionQueryRepository>();
 
 if (!string.IsNullOrEmpty(Environment.GetEnvironmentVariable("APPLICATIONINSIGHTS_CONNECTION_STRING")))
 {
