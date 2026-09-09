@@ -5,6 +5,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Microsoft.Data.SqlClient;
 using System.Data;
+using System.Diagnostics.CodeAnalysis;
 using System.Text.Json;
 
 namespace Apha.Sdo.Persistence.Functions;
@@ -60,16 +61,17 @@ public interface ISubmissionMetadataRepository
     Task<Guid> CreateAsync(SubmissionMetadataRequest submission, CancellationToken cancellationToken);
 }
 
+[ExcludeFromCodeCoverage(Justification = "Thin ADO.NET adapter; requires a live SQL Server to exercise meaningfully.")]
 public sealed class SubmissionMetadataRepository : ISubmissionMetadataRepository
 {
     private const string InsertCommand = """
         INSERT INTO dbo.Batch_Submission_Message (
             SubmissionID, UploadReferenceNumber, UserId, SubmissionDate, FileName, FileLocation,
-            SubmissionMnthYr, SubmissionProcessName, CreatedDateTime, CreatedBy, FailureCode,
+            SubmissionMnthYr, SubmissionProcessName, NotificationEmail, CreatedDateTime, CreatedBy, FailureCode,
             FailureReason, SubmissionStatus, ETLProcessStatus, UpdateDateTime, UpdatedBy, LaboratoryId)
         VALUES (
             @SubmissionID, @UploadReferenceNumber, @UserId, @SubmissionDate, @FileName, @FileLocation,
-            @SubmissionMnthYr, @SubmissionProcessName, @CreatedDateTime, @CreatedBy, @FailureCode,
+            @SubmissionMnthYr, @SubmissionProcessName, @NotificationEmail, @CreatedDateTime, @CreatedBy, @FailureCode,
             @FailureReason, @SubmissionStatus, @ETLProcessStatus, @UpdateDateTime, @UpdatedBy, @LaboratoryId);
         """;
 
@@ -102,6 +104,7 @@ public sealed class SubmissionMetadataRepository : ISubmissionMetadataRepository
         command.Parameters.Add("@FileLocation", SqlDbType.NVarChar, 500).Value = submission.FileLocation!;
         command.Parameters.Add("@SubmissionMnthYr", SqlDbType.NVarChar, 10).Value = DbValue(submission.SubmissionMnthYr);
         command.Parameters.Add("@SubmissionProcessName", SqlDbType.NVarChar, 50).Value = submission.SubmissionProcessName!;
+        command.Parameters.Add("@NotificationEmail", SqlDbType.NVarChar, 320).Value = DbValue(submission.NotificationEmail);
         command.Parameters.Add("@CreatedDateTime", SqlDbType.DateTime2).Value = now;
         command.Parameters.Add("@CreatedBy", SqlDbType.NVarChar, 50).Value = submission.UserId!;
         command.Parameters.Add("@FailureCode", SqlDbType.NVarChar, 100).Value = DbValue(submission.FailureCode);
@@ -119,7 +122,7 @@ public sealed class SubmissionMetadataRepository : ISubmissionMetadataRepository
     private static object DbValue(string? value) => string.IsNullOrWhiteSpace(value) ? DBNull.Value : value;
 }
 
-public sealed class SubmissionMetadataRequest
+public sealed record SubmissionMetadataRequest
 {
     public string? ReferenceNumber { get; init; }
     public string? UserId { get; init; }
@@ -128,6 +131,7 @@ public sealed class SubmissionMetadataRequest
     public string? FileLocation { get; init; }
     public string? SubmissionMnthYr { get; init; }
     public string? SubmissionProcessName { get; init; }
+    public string? NotificationEmail { get; init; }
     public string? FailureCode { get; init; }
     public string? FailureReason { get; init; }
     public string? SubmissionStatus { get; init; }

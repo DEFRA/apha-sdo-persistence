@@ -71,6 +71,67 @@ public class CreateSubmissionMetadataTests
         Assert.True(ValidSubmission().IsValid());
     }
 
+    [Fact]
+    public void IsValid_WhenAllOptionalFieldsArePresent_ReturnsTrue()
+    {
+        var submission = ValidSubmission() with
+        {
+            NotificationEmail = "notify@example.gov.uk",
+            FailureCode = "ERR-001",
+            FailureReason = "Timed out",
+            SubmissionStatus = "Failed",
+            EtlProcessStatus = "Complete",
+            LaboratoryId = "LAB-123"
+        };
+
+        Assert.True(submission.IsValid());
+    }
+
+    [Theory]
+    [InlineData(nameof(SubmissionMetadataRequest.UserId))]
+    [InlineData(nameof(SubmissionMetadataRequest.Name))]
+    [InlineData(nameof(SubmissionMetadataRequest.FileLocation))]
+    [InlineData(nameof(SubmissionMetadataRequest.SubmissionProcessName))]
+    public void IsValid_WhenRequiredStringFieldIsMissing_ReturnsFalse(string fieldName)
+    {
+        var submission = ValidSubmission() with
+        {
+            UserId = fieldName == nameof(SubmissionMetadataRequest.UserId) ? null : "user@example.gov.uk",
+            Name = fieldName == nameof(SubmissionMetadataRequest.Name) ? null : "submission.json",
+            FileLocation = fieldName == nameof(SubmissionMetadataRequest.FileLocation) ? null : "https://storage.example/submission.json",
+            SubmissionProcessName = fieldName == nameof(SubmissionMetadataRequest.SubmissionProcessName) ? null : "BR"
+        };
+
+        Assert.False(submission.IsValid());
+    }
+
+    [Fact]
+    public void IsValid_WhenSubmittedAtIsMissing_ReturnsFalse()
+    {
+        var submission = ValidSubmission() with { SubmittedAt = null };
+
+        Assert.False(submission.IsValid());
+    }
+
+    [Theory]
+    [InlineData(nameof(SubmissionMetadataRequest.UserId), 51)]
+    [InlineData(nameof(SubmissionMetadataRequest.Name), 501)]
+    [InlineData(nameof(SubmissionMetadataRequest.FileLocation), 501)]
+    [InlineData(nameof(SubmissionMetadataRequest.SubmissionProcessName), 51)]
+    public void IsValid_WhenRequiredStringFieldExceedsMaximumLength_ReturnsFalse(string fieldName, int length)
+    {
+        var overlong = new string('a', length);
+        var submission = ValidSubmission() with
+        {
+            UserId = fieldName == nameof(SubmissionMetadataRequest.UserId) ? overlong : "user@example.gov.uk",
+            Name = fieldName == nameof(SubmissionMetadataRequest.Name) ? overlong : "submission.json",
+            FileLocation = fieldName == nameof(SubmissionMetadataRequest.FileLocation) ? overlong : "https://storage.example/submission.json",
+            SubmissionProcessName = fieldName == nameof(SubmissionMetadataRequest.SubmissionProcessName) ? overlong : "BR"
+        };
+
+        Assert.False(submission.IsValid());
+    }
+
     private static HttpRequest CreateRequest(string json)
     {
         var context = new DefaultHttpContext();
