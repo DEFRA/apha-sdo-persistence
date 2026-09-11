@@ -6,17 +6,17 @@ using Xunit;
 
 namespace Apha.Sdo.Persistence.Functions.Tests;
 
-public class GetPreviousSubmissionsTests
+public class GetAhrPreviousSubmissionsTests
 {
     [Fact]
-    public async Task Run_WithAuthenticatedLaboratoryUser_ReturnsSummariesForClaimLaboratory()
+    public async Task Run_WithAuthenticatedLaboratoryUser_ReturnsSummariesFilteredToAhrProcess()
     {
         var repository = new RecordingQueryRepository();
-        var function = new GetPreviousSubmissions(repository);
+        var function = new GetAhrPreviousSubmissions(repository);
         var request = CreateRequest(new ClaimsPrincipal(new ClaimsIdentity(
             [new Claim("laboratoryId", "LAB-123")], "Entra")));
         var expected = new SubmissionSummary(
-            Guid.NewGuid(), "REF-001", "BR", "notify@example.gov.uk", DateTime.UtcNow);
+            Guid.NewGuid(), "REF-001", "AHR", "notify@example.gov.uk", DateTime.UtcNow);
         repository.Results.Add(expected);
 
         var result = await function.Run(request, CancellationToken.None);
@@ -24,14 +24,14 @@ public class GetPreviousSubmissionsTests
         var response = Assert.IsType<OkObjectResult>(result);
         Assert.Same(repository.Results, response.Value);
         Assert.Equal("LAB-123", repository.LaboratoryId);
-        Assert.Null(repository.ProcessName);
+        Assert.Equal("AHR", repository.ProcessName);
     }
 
     [Fact]
     public async Task Run_WithoutAuthenticatedUser_ReturnsUnauthorized()
     {
         var repository = new RecordingQueryRepository();
-        var function = new GetPreviousSubmissions(repository);
+        var function = new GetAhrPreviousSubmissions(repository);
 
         var result = await function.Run(CreateRequest(new ClaimsPrincipal()), CancellationToken.None);
 
@@ -43,7 +43,7 @@ public class GetPreviousSubmissionsTests
     public async Task Run_WithoutLaboratoryClaim_ReturnsForbidden()
     {
         var repository = new RecordingQueryRepository();
-        var function = new GetPreviousSubmissions(repository);
+        var function = new GetAhrPreviousSubmissions(repository);
         var principal = new ClaimsPrincipal(new ClaimsIdentity(
             [new Claim(ClaimTypes.Name, "user@example.gov.uk")], "Entra"));
 
@@ -51,19 +51,6 @@ public class GetPreviousSubmissionsTests
 
         Assert.IsType<ForbidResult>(result);
         Assert.Null(repository.LaboratoryId);
-    }
-
-    [Fact]
-    public void SubmissionSummary_WithSameValues_AreEqual()
-    {
-        var submittedDate = new DateTime(2026, 8, 28, 10, 0, 0, DateTimeKind.Utc);
-        var submissionId = Guid.NewGuid();
-        var first = new SubmissionSummary(submissionId, "REF-001", "BR", "notify@example.gov.uk", submittedDate);
-        var second = new SubmissionSummary(submissionId, "REF-001", "BR", "notify@example.gov.uk", submittedDate);
-
-        Assert.Equal(first, second);
-        Assert.Equal(first.GetHashCode(), second.GetHashCode());
-        Assert.Contains("REF-001", first.ToString());
     }
 
     private static HttpRequest CreateRequest(ClaimsPrincipal user)

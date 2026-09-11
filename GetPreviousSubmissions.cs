@@ -34,7 +34,7 @@ public sealed class GetPreviousSubmissions
             return new ForbidResult();
         }
 
-        var submissions = await _repository.GetSummariesAsync(laboratoryId, cancellationToken);
+        var submissions = await _repository.GetSummariesAsync(laboratoryId, processName: null, cancellationToken);
         return new OkObjectResult(submissions);
     }
 }
@@ -68,6 +68,7 @@ public interface ISubmissionQueryRepository
 {
     Task<IReadOnlyList<SubmissionSummary>> GetSummariesAsync(
         string laboratoryId,
+        string? processName,
         CancellationToken cancellationToken);
 }
 
@@ -82,6 +83,14 @@ public sealed class SubmissionQueryRepository : ISubmissionQueryRepository
         ORDER BY SubmissionDate DESC;
         """;
 
+    private const string SelectByProcessCommand = """
+        SELECT SubmissionID, UploadReferenceNumber, SubmissionProcessName,
+               NotificationEmail, SubmissionDate
+        FROM dbo.Batch_Submission_Message
+        WHERE LaboratoryId = @LaboratoryId AND SubmissionProcessName = @SubmissionProcessName
+        ORDER BY SubmissionDate DESC;
+        """;
+
     private readonly string? _connectionString;
 
     public SubmissionQueryRepository(IConfiguration configuration)
@@ -91,6 +100,7 @@ public sealed class SubmissionQueryRepository : ISubmissionQueryRepository
 
     public async Task<IReadOnlyList<SubmissionSummary>> GetSummariesAsync(
         string laboratoryId,
+        string? processName,
         CancellationToken cancellationToken)
     {
         if (string.IsNullOrWhiteSpace(_connectionString))
@@ -101,8 +111,13 @@ public sealed class SubmissionQueryRepository : ISubmissionQueryRepository
         var submissions = new List<SubmissionSummary>();
         await using var connection = new SqlConnection(_connectionString);
         await connection.OpenAsync(cancellationToken);
-        await using var command = new SqlCommand(SelectCommand, connection);
+        var commandText = string.IsNullOrWhiteSpace(processName) ? SelectCommand : SelectByProcessCommand;
+        await using var command = new SqlCommand(commandText, connection);
         command.Parameters.Add("@LaboratoryId", SqlDbType.NVarChar, 50).Value = laboratoryId;
+        if (!string.IsNullOrWhiteSpace(processName))
+        {
+            command.Parameters.Add("@SubmissionProcessName", SqlDbType.NVarChar, 50).Value = processName;
+        }
 
         await using var reader = await command.ExecuteReaderAsync(cancellationToken);
         while (await reader.ReadAsync(cancellationToken))
